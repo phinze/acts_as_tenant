@@ -1,4 +1,5 @@
 require "active_support/current_attributes"
+require "active_support/core_ext/module/attribute_accessors_per_thread"
 require "acts_as_tenant/version"
 require "acts_as_tenant/errors"
 
@@ -14,18 +15,10 @@ module ActsAsTenant
   @@models_with_global_records = []
   @@mutable_tenant = false
 
-  class Current < ActiveSupport::CurrentAttributes
-    attribute :current_tenant, :acts_as_tenant_unscoped
-
-    def current_tenant=(tenant)
-      super.tap do
-        configuration.tenant_change_hook.call(tenant) if configuration.tenant_change_hook.present?
-      end
-    end
-
-    def configuration
-      Module.nesting.last.class_variable_get(:@@configuration)
-    end
+  # Thread-local attributes for tracking current tenant.
+  module Current
+    thread_mattr_accessor :current_tenant
+    thread_mattr_accessor :acts_as_tenant_unscoped
   end
 
   class << self
@@ -72,6 +65,7 @@ module ActsAsTenant
 
   def self.current_tenant=(tenant)
     Current.current_tenant = tenant
+    configuration.tenant_change_hook.call(tenant) if configuration.tenant_change_hook.present?
   end
 
   def self.current_tenant
