@@ -35,6 +35,16 @@ RSpec.describe ApplicationTestJob, type: :job do
         expect { described_class.perform_later(expected_tenant: nil) }.to have_enqueued_job.on_queue("default")
         expect { perform_enqueued_jobs }.to raise_error(ActsAsTenant::Errors::NoTenantSet)
       end
+
+      it "does not clobber current_tenant when performing job" do
+        ActsAsTenant.current_tenant = account
+        expect { described_class.perform_later(expected_tenant: account) }.to have_enqueued_job.on_queue("default")
+
+        other_account = accounts(:bar)
+        ActsAsTenant.current_tenant = other_account
+        expect { perform_enqueued_jobs }.not_to raise_error
+        expect(ActsAsTenant.current_tenant).to eq(other_account)
+      end
     end
 
     context "when tenant is not required" do

@@ -173,5 +173,5 @@ ActiveSupport.on_load(:action_view) do |base|
 end
 
 ActiveSupport.on_load(:active_job) do |base|
-  base.prepend ActsAsTenant::ActiveJobExtensions
+  base.include ActsAsTenant::ActiveJobExtensions
 end
